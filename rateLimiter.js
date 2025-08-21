@@ -1,44 +1,80 @@
-// This Map will store the token bucket for each user (identified by IP address)
-const tokenBucket = new Map();
-// Middleware
-const tokenBucketRateLimiter = (req, res, next) => {
-// 1. Identify the user by their IP address
-    const ip = req.ip
-    
-// 2. Rules for our rate limiter
-    const BUCKET_SIZE = 10; // Maximum tokens in the bucket
-    const REFILL_RATE = 2; // Tokens added per second
-    
-// 3. Check if this is a new user. If so, create a new bucket for them.
-    if(!tokenBucket.has(ip)){
-    tokenBucket.set(ip, {
-      tokens: BUCKET_SIZE,
-      lastRefill: Date.now(),
-    });
+// Import the ioredis library
+const Redis = require('ioredis');
+
+// Initialize a new Redis client instance.
+const redis = new Redis();
+
+/**
+ * An Express middleware that implements the Token Bucket algorithm for API rate limiting.
+ * It uses Redis as a persistent, centralized data store for scalability.
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ * @param {function} next - The callback function to pass control to the next middleware.
+ */
+const tokenBucketRateLimiter = async (req, res, next) => {
+  // parameters for the rate limiter.
+  const BUCKET_SIZE = 10; // The maximum number of requests a user can make in a short burst.
+  const REFILL_RATE = 2; // The number of tokens that are added back to the bucket each second.
+
+  try {
+    // Identify the user by their IP address. This will serve as the unique key in Redis.
+    const ip = req.ip;
+    const key = `user:${ip}`;
+
+    // Check if a record for this user already exists in Redis.
+    const userExists = await redis.exists(key);
+    if (!userExists) {
+      // If the user is new, create a new token bucket for them in a Redis Hash.
+      // The bucket is initialized with the maximum number of tokens.
+      await redis.hset(key, {
+        tokens: BUCKET_SIZE,
+        lastRefill: Date.now(),
+      });
     }
 
-    const bucket = tokenBucket.get(ip);
-    
-// 4. Refill the bucket with new tokens based on time passed
+    // Retrieve the user's current token bucket data from Redis.
+    const bucketData = await redis.hgetall(key);
+
+    // Convert the string values from Redis back into numbers.
+    const bucket = {
+      tokens: parseFloat(bucketData.tokens),
+      lastRefill: parseInt(bucketData.lastRefill, 10),
+    };
+
+    //how much time has passed since the last refill.
     const now = Date.now();
-    const timePassed = (now - bucket.lastRefill) / 1000;
+    const timePassed = (now - bucket.lastRefill) / 1000; // in seconds
+
+    //how many new tokens the user has earned in that time.
     const tokensToAdd = timePassed * REFILL_RATE;
 
+    //new tokens to the bucket added, ensuring it doesn't exceed the maximum size.
     bucket.tokens = Math.min(BUCKET_SIZE, bucket.tokens + tokensToAdd);
     bucket.lastRefill = now;
 
-// 5. Check if the user has enough tokens to proceed
+    // Add custom headers to the response to inform the client of their current rate limit status.
+    res.set('X-RateLimit-Limit', BUCKET_SIZE);
+    res.set('X-RateLimit-Remaining', Math.floor(bucket.tokens));
+
+    // Check if the user has at least one token to spend.
     if (bucket.tokens >= 1) {
-    bucket.tokens -= 1; // Subtract one token
-    tokenBucket.set(ip, bucket); // Save the new state
-    next(); // The user is allowed, proceed to the API endpoint
-    } 
-    else {
-    // 6. If not enough tokens, block the request
-    res.status(429).send('Too Many Requests');
+      // If they do, subtract one token.
+      bucket.tokens -= 1;
+
+      // Update the bucket in Redis with the new token count and last refill time.
+      await redis.hset(key, 'tokens', bucket.tokens, 'lastRefill', bucket.lastRefill);
+      
+      // The request is allowed. Pass control to the next middleware or the API endpoint.
+      next();
+    } else {
+      // If the bucket is empty, block the request.
+      res.status(429).send('Too Many Requests');
+    }
+  } catch (error) {
+    // If any error occurs we pass the error
+    next(error);
   }
-}
+};
 
-// Export the middleware 
+// Exporting the middleware 
 module.exports = tokenBucketRateLimiter;
-
