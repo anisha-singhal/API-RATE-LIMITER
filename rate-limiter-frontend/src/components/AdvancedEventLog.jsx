@@ -9,53 +9,10 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 
-const AdvancedEventLog = ({ filterTimestamp }) => {
-  const [logs, setLogs] = useState([]);
+const AdvancedEventLog = ({ logs, filterTimestamp }) => {
   const [filter, setFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [expandedRows, setExpandedRows] = useState(new Set());
-  const [animatingRows, setAnimatingRows] = useState(new Set());
-
-  // Note: This function generates fake data for demonstration.
-  // We will replace this later with real data from our API.
-  const generateLogEntry = () => {
-    const methods = ["GET", "POST", "PUT", "DELETE"];
-    const paths = ["/api/users", "/api/data", "/api/auth", "/api/orders"];
-    const isBlocked = Math.random() < 0.2;
-    
-    return {
-      id: Math.random().toString(36).substring(7),
-      timestamp: new Date(),
-      status: isBlocked ? "blocked" : "success",
-      method: methods[Math.floor(Math.random() * methods.length)],
-      path: paths[Math.floor(Math.random() * paths.length)],
-      latency: Math.floor(Math.random() * 500) + 20,
-      ip: "192.168.1.1",
-      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-      responseSize: isBlocked ? 0 : Math.floor(Math.random() * 10000) + 500,
-    };
-  };
-
-  useEffect(() => {
-    const initialLogs = Array.from({ length: 20 }, generateLogEntry);
-    setLogs(initialLogs);
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const newLog = generateLogEntry();
-      setAnimatingRows(prev => new Set([...prev, newLog.id]));
-      setTimeout(() => {
-        setAnimatingRows(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(newLog.id);
-          return newSet;
-        });
-      }, 1000);
-      setLogs(prevLogs => [newLog, ...prevLogs.slice(0, 99)]);
-    }, 2500);
-    return () => clearInterval(interval);
-  }, []);
 
   const parseFilter = (filterStr) => {
     const filters = {};
@@ -72,7 +29,8 @@ const AdvancedEventLog = ({ filterTimestamp }) => {
   };
 
   const filteredLogs = useMemo(() => {
-    let filtered = logs;
+    let filtered = [...logs];
+
     if (filterTimestamp) {
       filtered = filtered.filter(log => Math.abs(log.timestamp.getTime() - filterTimestamp) < 5000);
     }
@@ -83,7 +41,6 @@ const AdvancedEventLog = ({ filterTimestamp }) => {
       const parsedFilters = parseFilter(filter);
       filtered = filtered.filter(log => {
         return Object.entries(parsedFilters).every(([key, value]) => {
-          // This is a simplified filter for the demo
           return (
             log.path.toLowerCase().includes(value.toLowerCase()) ||
             log.method.toLowerCase().includes(value.toLowerCase()) ||
@@ -151,7 +108,6 @@ const AdvancedEventLog = ({ filterTimestamp }) => {
           <tbody>
             {filteredLogs.map((log) => {
               const isExpanded = expandedRows.has(log.id);
-              const isAnimating = animatingRows.has(log.id);
               return (
                 <Collapsible key={log.id} asChild open={isExpanded} onOpenChange={() => toggleRowExpansion(log.id)}>
                   <>
