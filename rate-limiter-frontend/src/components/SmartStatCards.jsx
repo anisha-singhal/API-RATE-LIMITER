@@ -3,7 +3,7 @@ import { TrendingUp, TrendingDown, Coins, Database, RefreshCw, Shield } from "lu
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
 const SmartStatCards = () => {
-  // Later, we will replace this with real data from our API.
+  //will replace this with real data 
   const [stats, setStats] = useState([
     {
       id: "tokens",

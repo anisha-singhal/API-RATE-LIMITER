@@ -57,12 +57,17 @@ const EnhancedHeader = ({
                   <ChevronDown className="w-3 h-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="glass">
+              <DropdownMenuContent 
+                align="end" 
+                className="w-[var(--radix-dropdown-menu-trigger-width)] bg-gray-900/80 ..."
+              >
                 {dateRanges.map((range) => (
                   <DropdownMenuItem
                     key={range}
                     onClick={() => handleRangeChange(range)}
-                    className={`text-gray-200 ${selectedRange === range ? "bg-gray-700" : ""}`}
+                    className={`text-gray-300 rounded-md px-2 py-1.5 cursor-pointer focus:bg-blue-500/20 focus:text-white ${
+                      selectedRange === range ? "bg-blue-500/10 font-semibold" : ""
+                    }`}
                   >
                     {range}
                   </DropdownMenuItem>

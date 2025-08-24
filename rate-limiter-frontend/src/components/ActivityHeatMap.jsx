@@ -66,7 +66,6 @@ const ActivityHeatMap = () => {
         </p>
       </div>
       
-      {/* --- THIS IS THE CORRECTED LINE --- */}
       <div className="flex flex-wrap gap-1.5">
         {heatMapData.map((cell, index) => (
           <div
