@@ -1,35 +1,52 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from 'react';
+import AdvancedEventLog from '@/components/AdvancedEventLog';
+import ActivityHeatMap from '@/components/ActivityHeatMap';
+import ControlPanel from '@/components/ControlPanel';
+import EnhancedHeader from '@/components/EnhancedHeader';
+import InteractiveChart from '@/components/InteractiveChart';
+import SmartStatCards from '@/components/SmartStatCards';
+import { Toaster } from "@/components/ui/toaster"; // Required for shadcn/ui notifications
 
 function App() {
-  const [count, setCount] = useState(0)
+  // We will wire up all this logic in the next step to make the dashboard interactive
+  const [filterTimestamp, setFilterTimestamp] = useState(null);
+
+  const handleDataPointClick = (timestamp) => {
+    console.log("Chart clicked at timestamp:", timestamp);
+    setFilterTimestamp(timestamp);
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    // Note: You may need to adjust your main CSS/HTML for the dark theme
+    // if you see a white background. Add `className="dark"` to your <html> tag in index.html.
+    <div className="bg-background text-foreground min-h-screen">
+      <EnhancedHeader />
+
+      <main className="container mx-auto px-6 py-8">
+        <SmartStatCards />
+        
+        <div className="mt-8">
+          <InteractiveChart onDataPointClick={handleDataPointClick} />
+        </div>
+
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-5 gap-8">
+          <div className="lg:col-span-3">
+             <ActivityHeatMap />
+          </div>
+          <div className="lg:col-span-2">
+            <ControlPanel />
+          </div>
+        </div>
+        
+        <div className="mt-8">
+          <AdvancedEventLog filterTimestamp={filterTimestamp} />
+        </div>
+      </main>
+      
+      {/* This component is required for the shadcn/ui toast notifications to appear */}
+      <Toaster />
+    </div>
+  );
 }
 
-export default App
+export default App; 

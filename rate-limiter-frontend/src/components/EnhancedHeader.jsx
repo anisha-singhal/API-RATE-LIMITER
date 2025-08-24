@@ -1,0 +1,101 @@
+import { useState } from "react";
+import { Calendar, ChevronDown, Moon, Sun, Activity } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import CommandPalette from "./CommandPalette";
+
+const EnhancedHeader = ({
+  onDateRangeChange,
+  onThemeToggle,
+  onFilterErrors,
+  onToggleSimulation,
+  onRefreshData,
+  isDarkMode = true,
+}) => {
+  const [selectedRange, setSelectedRange] = useState("Last 60 mins");
+
+  const dateRanges = [
+    "Last 60 mins",
+    "Last 24h",
+    "Last 7 days",
+    "Last 30 days"
+  ];
+
+  const handleRangeChange = (range) => {
+    setSelectedRange(range);
+    onDateRangeChange(range);
+  };
+
+  return (
+    <header className="border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+      <div className="container mx-auto px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
+                <Activity className="w-4 h-4 text-white" />
+              </div>
+              <h1 className="text-xl font-semibold text-foreground">
+                API Command Center
+              </h1>
+            </div>
+            <div className="hidden sm:block w-px h-6 bg-border/50" />
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-status-success rounded-full animate-pulse" />
+              <span className="text-sm text-muted-foreground">API Operational</span>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                  <Calendar className="w-4 h-4" />
+                  <span className="hidden sm:inline">{selectedRange}</span>
+                  <ChevronDown className="w-3 h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="glass">
+                {dateRanges.map((range) => (
+                  <DropdownMenuItem
+                    key={range}
+                    onClick={() => handleRangeChange(range)}
+                    className={selectedRange === range ? "bg-accent" : ""}
+                  >
+                    {range}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onThemeToggle}
+              className="w-9 h-9 p-0"
+            >
+              {isDarkMode ? (
+                <Sun className="w-4 h-4" />
+              ) : (
+                <Moon className="w-4 h-4" />
+              )}
+            </Button>
+            <div className="hidden lg:block">
+              <CommandPalette
+                onFilterErrors={onFilterErrors}
+                onToggleSimulation={onToggleSimulation}
+                onToggleTheme={onThemeToggle}
+                onRefreshData={onRefreshData}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+};
+
+export default EnhancedHeader;
