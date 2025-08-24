@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import EnhancedHeader from '@/components/EnhancedHeader';
 import SmartStatCards from '@/components/SmartStatCards';
@@ -9,33 +9,65 @@ import AdvancedEventLog from '@/components/AdvancedEventLog';
 import { Toaster } from "@/components/ui/toaster";
 
 function App() {
-  const [filterTimestamp, setFilterTimestamp] = useState(null);
-  // --- ADD THIS STATE ---
-  const [dateRange, setDateRange] = useState('Last 60 mins');
+  const [logs, setLogs] = useState([]);
+  const [stats, setStats] = useState({
+    tokensRemaining: 10,
+    bucketCapacity: 10,
+    refillRate: '2/sec',
+    blocked24h: 1421, 
+  });
+  
+  const makeApiRequest = async () => {
+    try {
+      // GET request to backend server
+      const response = await axios.get('http://localhost:8000/api/data');
 
-  const handleDataPointClick = (timestamp) => {
-    console.log("Chart clicked at timestamp:", timestamp);
-    setFilterTimestamp(timestamp);
-  };
+      // Extract data from the successful response
+      const remainingTokens = parseFloat(response.headers['x-ratelimit-remaining']);
+      const newLog = {
+        id: Math.random().toString(36).substring(7),
+        timestamp: new Date(),
+        status: 'success',
+        method: 'GET',
+        path: '/api/data',
+        latency: 50, 
+      };
 
-  // --- ADD THIS HANDLER FUNCTION ---
-  const handleDateRangeChange = (newRange) => {
-    console.log("New date range selected:", newRange);
-    setDateRange(newRange);
-    // In a real application, you would trigger a new API call here
-    // to fetch data for the new date range.
+      // Update the state
+      setStats(prevStats => ({ ...prevStats, tokensRemaining: remainingTokens }));
+      setLogs(prevLogs => [newLog, ...prevLogs]);
+
+    } catch (error) {
+      if (error.response && error.response.status === 429) {
+        const remainingTokens = parseFloat(error.response.headers['x-ratelimit-remaining']);
+        const newLog = {
+          id: Math.random().toString(36).substring(7),
+          timestamp: new Date(),
+          status: 'blocked',
+          method: 'GET',
+          path: '/api/data',
+          latency: 25,
+        };
+        
+        // Update the state
+        setStats(prevStats => ({ ...prevStats, tokensRemaining: remainingTokens }));
+        setLogs(prevLogs => [newLog, ...prevLogs]);
+      } else {
+        console.error("An unexpected error occurred:", error);
+      }
+    }
   };
 
   return (
-    <div className="bg-background text-foreground min-h-screen">
-      {/* --- UPDATE THIS LINE --- */}
-      <EnhancedHeader onDateRangeChange={handleDateRangeChange} />
+    <div className="bg-gray-900 text-gray-200 min-h-screen">
+      <EnhancedHeader />
 
       <main className="container mx-auto px-6 py-8">
-        <SmartStatCards />
+        {/* Pass the live stats down to the component */}
+        <SmartStatCards stats={stats} />
         
         <div className="mt-8">
-          <InteractiveChart onDataPointClick={handleDataPointClick} />
+          <InteractiveChart onDataPointClick={() => {}} />
         </div>
 
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-5 gap-8">
@@ -43,12 +75,14 @@ function App() {
              <ActivityHeatMap />
           </div>
           <div className="lg:col-span-2">
-            <ControlPanel />
+            {/* Pass the API call function down to the component */}
+            <ControlPanel onSendRequest={makeApiRequest} />
           </div>
         </div>
         
         <div className="mt-8">
-          <AdvancedEventLog filterTimestamp={filterTimestamp} />
+          {/* Pass the live logs down to the component */}
+          <AdvancedEventLog logs={logs} />
         </div>
       </main>
       

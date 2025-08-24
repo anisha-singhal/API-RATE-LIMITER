@@ -5,16 +5,9 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
-const ControlPanel = () => {
+const ControlPanel = ({ onSendRequest }) => {
   const [isSimulating, setIsSimulating] = useState(false);
   const { toast } = useToast();
-
-  const handleSendRequest = () => {
-    toast({
-      title: "Request Sent",
-      description: "Test request sent to API endpoint",
-    });
-  };
 
   const handleToggleSimulation = () => {
     setIsSimulating(!isSimulating);
@@ -32,7 +25,7 @@ const ControlPanel = () => {
       
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0">
         <Button
-          onClick={handleSendRequest}
+          onClick={onSendRequest}
           className="bg-primary hover:bg-primary/90 text-primary-foreground"
         >
           <Send className="w-4 h-4 mr-2" />
