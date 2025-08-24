@@ -23,12 +23,11 @@ const ActivityHeatMap = () => {
     setHeatMapData(data);
   }, []);
 
-  // Update data periodically (this part is for simulation and can be removed later)
+  // Update data periodically (this part is for simulation)
   useEffect(() => {
     const interval = setInterval(() => {
       setHeatMapData((prevData) => {
         const newData = [...prevData];
-        
         const requests = Math.floor(Math.random() * 100);
         let intensity = 0;
         
@@ -36,8 +35,8 @@ const ActivityHeatMap = () => {
         else if (requests > 50) intensity = 2;
         else if (requests > 25) intensity = 1;
         
-        newData.shift();
-        newData.push({
+        newData.shift(); // Remove the oldest data point
+        newData.push({ // Add the newest data point
           minute: 59,
           intensity,
           requests,
@@ -57,7 +56,7 @@ const ActivityHeatMap = () => {
   };
 
   return (
-    <div className="bg-gray-800 rounded-xl p-6 mb-8 border border-gray-700">
+    <div className="bg-gray-800/50 rounded-xl p-6 mb-8 border border-gray-700 backdrop-blur-sm">
       <div className="mb-4">
         <h2 className="text-lg font-semibold text-white mb-2">
           Activity Heat Map (Last Hour)
@@ -67,11 +66,12 @@ const ActivityHeatMap = () => {
         </p>
       </div>
       
-      <div className="grid grid-cols-15 gap-1.5">
+      {/* --- THIS IS THE CORRECTED LINE --- */}
+      <div className="flex flex-wrap gap-1.5">
         {heatMapData.map((cell, index) => (
           <div
             key={index}
-            className={`heatmap-cell h-4 w-full rounded-sm intensity-${cell.intensity} cursor-pointer`}
+            className={`heatmap-cell h-4 w-4 rounded-sm intensity-${cell.intensity} cursor-pointer`}
             title={getTooltipContent(cell)}
           />
         ))}

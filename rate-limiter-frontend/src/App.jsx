@@ -1,26 +1,35 @@
 import { useState } from 'react';
-import AdvancedEventLog from '@/components/AdvancedEventLog';
+import axios from 'axios';
+import EnhancedHeader from '@/components/EnhancedHeader';
+import SmartStatCards from '@/components/SmartStatCards';
+import InteractiveChart from '@/components/InteractiveChart';
 import ActivityHeatMap from '@/components/ActivityHeatMap';
 import ControlPanel from '@/components/ControlPanel';
-import EnhancedHeader from '@/components/EnhancedHeader';
-import InteractiveChart from '@/components/InteractiveChart';
-import SmartStatCards from '@/components/SmartStatCards';
-import { Toaster } from "@/components/ui/toaster"; // Required for shadcn/ui notifications
+import AdvancedEventLog from '@/components/AdvancedEventLog';
+import { Toaster } from "@/components/ui/toaster";
 
 function App() {
-  // We will wire up all this logic in the next step to make the dashboard interactive
   const [filterTimestamp, setFilterTimestamp] = useState(null);
+  // --- ADD THIS STATE ---
+  const [dateRange, setDateRange] = useState('Last 60 mins');
 
   const handleDataPointClick = (timestamp) => {
     console.log("Chart clicked at timestamp:", timestamp);
     setFilterTimestamp(timestamp);
   };
 
+  // --- ADD THIS HANDLER FUNCTION ---
+  const handleDateRangeChange = (newRange) => {
+    console.log("New date range selected:", newRange);
+    setDateRange(newRange);
+    // In a real application, you would trigger a new API call here
+    // to fetch data for the new date range.
+  };
+
   return (
-    // Note: You may need to adjust your main CSS/HTML for the dark theme
-    // if you see a white background. Add `className="dark"` to your <html> tag in index.html.
     <div className="bg-background text-foreground min-h-screen">
-      <EnhancedHeader />
+      {/* --- UPDATE THIS LINE --- */}
+      <EnhancedHeader onDateRangeChange={handleDateRangeChange} />
 
       <main className="container mx-auto px-6 py-8">
         <SmartStatCards />
@@ -43,10 +52,9 @@ function App() {
         </div>
       </main>
       
-      {/* This component is required for the shadcn/ui toast notifications to appear */}
       <Toaster />
     </div>
   );
 }
 
-export default App; 
+export default App;

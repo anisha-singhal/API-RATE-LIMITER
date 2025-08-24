@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, ChevronDown, Moon, Sun, Activity } from "lucide-react";
+import { Calendar, ChevronDown, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,11 +11,9 @@ import CommandPalette from "./CommandPalette";
 
 const EnhancedHeader = ({
   onDateRangeChange,
-  onThemeToggle,
   onFilterErrors,
   onToggleSimulation,
   onRefreshData,
-  isDarkMode = true,
 }) => {
   const [selectedRange, setSelectedRange] = useState("Last 60 mins");
 
@@ -46,7 +44,7 @@ const EnhancedHeader = ({
             </div>
             <div className="hidden sm:block w-px h-6 bg-border/50" />
             <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-status-success rounded-full animate-pulse" />
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
               <span className="text-sm text-muted-foreground">API Operational</span>
             </div>
           </div>
@@ -64,30 +62,18 @@ const EnhancedHeader = ({
                   <DropdownMenuItem
                     key={range}
                     onClick={() => handleRangeChange(range)}
-                    className={selectedRange === range ? "bg-accent" : ""}
+                    className={`text-gray-200 ${selectedRange === range ? "bg-gray-700" : ""}`}
                   >
                     {range}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onThemeToggle}
-              className="w-9 h-9 p-0"
-            >
-              {isDarkMode ? (
-                <Sun className="w-4 h-4" />
-              ) : (
-                <Moon className="w-4 h-4" />
-              )}
-            </Button>
+            
             <div className="hidden lg:block">
               <CommandPalette
                 onFilterErrors={onFilterErrors}
                 onToggleSimulation={onToggleSimulation}
-                onToggleTheme={onThemeToggle}
                 onRefreshData={onRefreshData}
               />
             </div>

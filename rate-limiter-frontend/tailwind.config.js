@@ -1,16 +1,14 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: "class",
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
-    "./src/components/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
       colors: {
-        background: '#09090B', // Dark background
-        foreground: '#E4E4E7', // Light text
+        background: '#09090B', // Very dark gray
+        foreground: '#E4E4E7', // Light gray text
         card: '#18181B',       // Card background
         primary: {
           DEFAULT: '#3B82F6', // Blue
@@ -20,10 +18,8 @@ export default {
           DEFAULT: '#27272A',
           foreground: '#A1A1AA',
         },
-        accent: {
-          DEFAULT: '#60A5FA',
-          foreground: '#09090B',
-        },
+        border: '#27272A',
+        // Add more colors here if your components need them
       },
     },
   },

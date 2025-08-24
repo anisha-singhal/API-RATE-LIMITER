@@ -50,6 +50,7 @@ const ControlPanel = () => {
             id="simulate-traffic"
             checked={isSimulating}
             onCheckedChange={handleToggleSimulation}
+            className="data-[state=unchecked]:bg-gray-700"
           />
           <Zap className={`w-4 h-4 transition-colors ${isSimulating ? 'text-accent' : 'text-muted-foreground'}`} />
         </div>

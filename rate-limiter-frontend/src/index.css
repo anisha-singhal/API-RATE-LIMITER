@@ -1,3 +1,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Heat Map styles with direct colors */
+.heatmap-cell.intensity-0 {
+  background-color: #27272A; /* Dark Gray */
+}
+.heatmap-cell.intensity-1 {
+  background-color: #1d4ed8; /* Dark Blue */
+}
+.heatmap-cell.intensity-2 {
+  background-color: #2563eb; /* Medium Blue */
+}
+.heatmap-cell.intensity-3 {
+  background-color: #60a5fa; /* Bright Blue */
+}
