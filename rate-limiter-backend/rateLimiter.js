@@ -2,7 +2,7 @@
 const Redis = require('ioredis');
 
 // Initialize a new Redis client instance.
-const redis = new Redis();
+const redis = new Redis({ host: '127.0.0.1', port: 6379 });
 
 /**
  * An Express middleware that implements the Token Bucket algorithm for API rate limiting.

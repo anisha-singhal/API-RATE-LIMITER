@@ -1,15 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
+import React from 'react';
+import { useState, useMemo } from "react";
 import { Search, ChevronDown, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 
-const AdvancedEventLog = ({ logs, filterTimestamp }) => {
+const AdvancedEventLog = ({ logs = [], filterTimestamp }) => {
   const [filter, setFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [expandedRows, setExpandedRows] = useState(new Set());
@@ -18,9 +14,11 @@ const AdvancedEventLog = ({ logs, filterTimestamp }) => {
     const filters = {};
     const parts = filterStr.split(" AND ");
     parts.forEach(part => {
-      const [key, value] = part.split(":");
-      if (key && value) {
-        filters[key.trim()] = value.trim();
+      const separatorIndex = part.indexOf(":");
+      if (separatorIndex > -1) {
+        const key = part.substring(0, separatorIndex).trim();
+        const value = part.substring(separatorIndex + 1).trim();
+        filters[key] = value;
       } else {
         filters.general = part.trim();
       }
@@ -30,7 +28,6 @@ const AdvancedEventLog = ({ logs, filterTimestamp }) => {
 
   const filteredLogs = useMemo(() => {
     let filtered = [...logs];
-
     if (filterTimestamp) {
       filtered = filtered.filter(log => Math.abs(log.timestamp.getTime() - filterTimestamp) < 5000);
     }
@@ -38,17 +35,14 @@ const AdvancedEventLog = ({ logs, filterTimestamp }) => {
       filtered = filtered.filter(log => log.status === statusFilter);
     }
     if (filter.trim()) {
-      const parsedFilters = parseFilter(filter);
-      filtered = filtered.filter(log => {
-        return Object.entries(parsedFilters).every(([key, value]) => {
-          return (
-            log.path.toLowerCase().includes(value.toLowerCase()) ||
-            log.method.toLowerCase().includes(value.toLowerCase()) ||
-            log.status.toLowerCase().includes(value.toLowerCase())
-          );
-        });
-      });
+      const lowercasedFilter = filter.toLowerCase();
+      filtered = filtered.filter(log => 
+        log.path.toLowerCase().includes(lowercasedFilter) || 
+        log.method.toLowerCase().includes(lowercasedFilter) || 
+        log.status.toLowerCase().includes(lowercasedFilter)
+      );
     }
+    filtered.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
     return filtered;
   }, [logs, filter, statusFilter, filterTimestamp]);
 
@@ -93,7 +87,7 @@ const AdvancedEventLog = ({ logs, filterTimestamp }) => {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto h-96">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-700">
@@ -105,35 +99,43 @@ const AdvancedEventLog = ({ logs, filterTimestamp }) => {
               <th className="text-center py-3 px-4 font-medium text-gray-400">Details</th>
             </tr>
           </thead>
+          
           <tbody>
             {filteredLogs.map((log) => {
               const isExpanded = expandedRows.has(log.id);
               return (
-                <Collapsible key={log.id} asChild open={isExpanded} onOpenChange={() => toggleRowExpansion(log.id)}>
-                  <>
-                    <CollapsibleTrigger asChild>
-                      <tr className={`border-b border-gray-800 hover:bg-gray-700/50 transition-colors cursor-pointer ${isAnimating ? 'animate-pulse' : ''}`}>
-                        <td className="py-3 px-4"><div className="flex items-center"><Clock className="w-3 h-3 mr-2 text-gray-500" />{log.timestamp.toLocaleTimeString()}</div></td>
-                        <td className="py-3 px-4">{getStatusBadge(log.status)}</td>
-                        <td className="py-3 px-4 font-mono">{log.method}</td>
-                        <td className="py-3 px-4 text-gray-400 font-mono">{log.path}</td>
-                        <td className="py-3 px-4 text-right">{log.latency}ms</td>
-                        <td className="py-3 px-4"><div className="flex justify-center"><ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? "rotate-180" : ""}`} /></div></td>
-                      </tr>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent asChild>
-                      <tr className="bg-gray-900/70">
-                        <td colSpan={6} className="p-4">
-                          <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-xs">
-                            <div className="flex justify-between"><span className="text-gray-500">IP Address:</span><span className="font-mono">{log.ip}</span></div>
-                            <div className="flex justify-between"><span className="text-gray-500">Response Size:</span><span>{log.responseSize} bytes</span></div>
-                            <div className="flex justify-between col-span-2"><span className="text-gray-500">User Agent:</span><span className="font-mono truncate">{log.userAgent}</span></div>
-                          </div>
-                        </td>
-                      </tr>
-                    </CollapsibleContent>
-                  </>
-                </Collapsible>
+                // React.Fragment to group the two rows
+                <React.Fragment key={log.id}>
+                  {/* This is the main, clickable row */}
+                  <tr 
+                    onClick={() => toggleRowExpansion(log.id)}
+                    className="border-b border-gray-800 hover:bg-gray-700/50 transition-colors cursor-pointer"
+                  >
+                    <td className="py-3 px-4"><div className="flex items-center"><Clock className="w-3 h-3 mr-2 text-gray-500" />{log.timestamp.toLocaleTimeString()}</div></td>
+                    <td className="py-3 px-4">{getStatusBadge(log.status)}</td>
+                    <td className="py-3 px-4 font-mono">{log.method}</td>
+                    <td className="py-3 px-4 text-gray-400 font-mono">{log.path}</td>
+                    <td className="py-3 px-4 text-right">{log.latency}ms</td>
+                    <td className="py-3 px-4">
+                      <div className="flex justify-center">
+                        <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                      </div>
+                    </td>
+                  </tr>
+                  
+                  {/* This is the content row that shows only when expanded */}
+                  {isExpanded && (
+                    <tr className="bg-gray-900/70">
+                      <td colSpan={6} className="p-4">
+                        <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-xs">
+                          <div className="flex justify-between"><span className="text-gray-500">IP Address:</span><span className="font-mono">{log.ip}</span></div>
+                          <div className="flex justify-between"><span className="text-gray-500">Response Size:</span><span>{log.responseSize} bytes</span></div>
+                          <div className="flex justify-between col-span-2"><span className="text-gray-500">User Agent:</span><span className="font-mono truncate">{log.userAgent}</span></div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               );
             })}
           </tbody>

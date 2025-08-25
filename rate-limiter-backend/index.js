@@ -1,6 +1,11 @@
 const express = require('express');
+const cors = require('cors');
 const tokenBucketRateLimiter = require('./rateLimiter');
 const app = express(); 
+
+app.use(cors({
+  exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining'],
+}));
 
 app.set('trust proxy', 1);
 
