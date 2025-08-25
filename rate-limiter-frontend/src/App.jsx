@@ -16,6 +16,28 @@ function App() {
     refillRate: '2/sec',
     blocked24h: 1421, 
   });
+
+  const [isSimulating, setIsSimulating] = useState(false);
+
+  useEffect(() => {
+    let intervalId = null;
+
+    if (isSimulating) {
+      intervalId = setInterval(() => {
+        makeApiRequest();
+      }, 1000); 
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [isSimulating]);
+
+  const handleToggleSimulation = () => {
+    setIsSimulating(prevState => !prevState);
+  };
   
   const makeApiRequest = async () => {
     try {

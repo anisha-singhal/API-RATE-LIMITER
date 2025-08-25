@@ -1,23 +1,9 @@
-import { useState } from "react";
 import { Send, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
 
-const ControlPanel = ({ onSendRequest }) => {
-  const [isSimulating, setIsSimulating] = useState(false);
-  const { toast } = useToast();
-
-  const handleToggleSimulation = () => {
-    setIsSimulating(!isSimulating);
-    toast({
-      title: isSimulating ? "Simulation Stopped" : "Simulation Started",
-      description: isSimulating 
-        ? "Traffic simulation has been disabled" 
-        : "Generating simulated API traffic",
-    });
-  };
+const ControlPanel = ({ onSendRequest, isSimulating, onToggleSimulation }) => {
 
   return (
     <div className="glass rounded-xl p-6">
@@ -42,7 +28,7 @@ const ControlPanel = ({ onSendRequest }) => {
           <Switch
             id="simulate-traffic"
             checked={isSimulating}
-            onCheckedChange={handleToggleSimulation}
+            onCheckedChange={onToggleSimulation}
             className="data-[state=unchecked]:bg-gray-700"
           />
           <Zap className={`w-4 h-4 transition-colors ${isSimulating ? 'text-accent' : 'text-muted-foreground'}`} />
