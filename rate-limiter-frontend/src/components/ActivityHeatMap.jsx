@@ -1,58 +1,13 @@
 import { useState, useEffect } from "react";
 
-const ActivityHeatMap = () => {
-  const [heatMapData, setHeatMapData] = useState([]);
-
-  useEffect(() => {
-    // Generate data for the last 60 minutes
-    const data = [];
-    for (let i = 0; i < 60; i++) {
-      const requests = Math.floor(Math.random() * 100);
-      let intensity = 0;
-      
-      if (requests > 75) intensity = 3;
-      else if (requests > 50) intensity = 2;
-      else if (requests > 25) intensity = 1;
-      
-      data.push({
-        minute: i,
-        intensity,
-        requests,
-      });
+const ActivityHeatMap = ({ data = [] }) => {
+  const getTooltipContent = (cell, index) => {
+    if (!cell) return '';
+    const secondsAgo = 119 - index; // The array has 120 items
+    if (secondsAgo === 0) {
+      return `Now: ${cell.requests || 0} requests`;
     }
-    setHeatMapData(data);
-  }, []);
-
-  // Update data periodically (this part is for simulation)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setHeatMapData((prevData) => {
-        const newData = [...prevData];
-        const requests = Math.floor(Math.random() * 100);
-        let intensity = 0;
-        
-        if (requests > 75) intensity = 3;
-        else if (requests > 50) intensity = 2;
-        else if (requests > 25) intensity = 1;
-        
-        newData.shift(); // Remove the oldest data point
-        newData.push({ // Add the newest data point
-          minute: 59,
-          intensity,
-          requests,
-        });
-        
-        return newData;
-      });
-    }, 60000); // Update every minute
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const getTooltipContent = (cell) => {
-    const now = new Date();
-    const cellTime = new Date(now.getTime() - (59 - cell.minute) * 60000);
-    return `${cellTime.toLocaleTimeString()}: ${cell.requests} requests`;
+    return `${secondsAgo}s ago: ${cell.requests || 0} requests`;
   };
 
   return (
@@ -67,11 +22,11 @@ const ActivityHeatMap = () => {
       </div>
       
       <div className="flex flex-wrap gap-1.5">
-        {heatMapData.map((cell, index) => (
+        {data.map((cell, index) => (
           <div
             key={index}
             className={`heatmap-cell h-4 w-4 rounded-sm intensity-${cell.intensity} cursor-pointer`}
-            title={getTooltipContent(cell)}
+            title={getTooltipContent(cell, index)}
           />
         ))}
       </div>

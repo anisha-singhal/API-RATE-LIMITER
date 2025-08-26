@@ -14,21 +14,21 @@ function App() {
     tokensRemaining: 10,
     bucketCapacity: 10,
     refillRate: '2/sec',
-    blocked24h: 1421, 
+    blocked24h: 1421,
   });
-
   const [isSimulating, setIsSimulating] = useState(false);
   const [chartData, setChartData] = useState([]);
+  
+  // --- STATE FOR HEAT MAP DATA ---
+  const [heatMapData, setHeatMapData] = useState(Array.from({ length: 120 }, () => ({ requests: 0, intensity: 0 })));
 
   useEffect(() => {
     let intervalId = null;
-
     if (isSimulating) {
       intervalId = setInterval(() => {
         makeApiRequest();
-      }, 1000); 
+      }, 1000);
     }
-
     return () => {
       if (intervalId) {
         clearInterval(intervalId);
@@ -39,22 +39,20 @@ function App() {
   const handleToggleSimulation = () => {
     setIsSimulating(prevState => !prevState);
   };
-  
+
   const makeApiRequest = async () => {
     const updateChart = (status) => {
       setChartData(currentData => {
         const now = new Date();
         const currentTimeSlot = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds()).getTime();
-        
         const newData = [...currentData];
         const lastPoint = newData[newData.length - 1];
-
         if (lastPoint && lastPoint.timestamp === currentTimeSlot) {
-          // Update the last data point if it's in the same second
-          if (status === 'success') lastPoint.successful += 1;
-          if (status === 'blocked') lastPoint.blocked += 1;
+          const updatedPoint = { ...lastPoint };
+          if (status === 'success') updatedPoint.successful += 1;
+          if (status === 'blocked') updatedPoint.blocked += 1;
+          newData[newData.length - 1] = updatedPoint;
         } else {
-          // Add a new data point for the new second
           newData.push({
             timestamp: currentTimeSlot,
             time: new Date(currentTimeSlot).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
@@ -62,15 +60,32 @@ function App() {
             blocked: status === 'blocked' ? 1 : 0,
           });
         }
-        // Keep only the last 60 seconds of data
         return newData.length > 60 ? newData.slice(-60) : newData;
       });
     };
-    try {
-      // GET request to backend server
-      const response = await axios.get('http://localhost:8000/api/data');
 
-      // Extract data from the successful response
+    // --- HELPER FUNCTION FOR HEAT MAP ---
+    const updateHeatMap = () => {
+      setHeatMapData(currentHeatMap => {
+        const newHeatMap = [...currentHeatMap];
+        // Remove the oldest data point from the beginning
+        newHeatMap.shift(); 
+        
+        // Add a new, random-intensity data point at the end
+        const requests = Math.floor(Math.random() * 20); // Simulate random intensity
+        let intensity = 0;
+        if (requests > 15) intensity = 3;
+        else if (requests > 10) intensity = 2;
+        else if (requests > 5) intensity = 1;
+
+        newHeatMap.push({ requests, intensity });
+        
+        return newHeatMap;
+      });
+    };
+
+    try {
+      const response = await axios.get('http://localhost:8000/api/data');
       const remainingTokens = parseFloat(response.headers['x-ratelimit-remaining']);
       const newLog = {
         id: Math.random().toString(36).substring(7),
@@ -78,14 +93,12 @@ function App() {
         status: 'success',
         method: 'GET',
         path: '/api/data',
-        latency: 50, 
+        latency: Math.floor(Math.random() * (100 - 30) + 30),
       };
-
-      // Update the state
       setStats(prevStats => ({ ...prevStats, tokensRemaining: remainingTokens }));
       setLogs(prevLogs => [newLog, ...prevLogs]);
       updateChart('success');
-
+      updateHeatMap(); // Call heat map update
     } catch (error) {
       if (error.response && error.response.status === 429) {
         const remainingTokens = parseFloat(error.response.headers['x-ratelimit-remaining']);
@@ -95,13 +108,12 @@ function App() {
           status: 'blocked',
           method: 'GET',
           path: '/api/data',
-          latency: 25,
+          latency: Math.floor(Math.random() * (40 - 10) + 10),
         };
-        
-        // Update the state
         setStats(prevStats => ({ ...prevStats, tokensRemaining: remainingTokens }));
         setLogs(prevLogs => [newLog, ...prevLogs]);
         updateChart('blocked');
+        updateHeatMap(); // Call heat map update
       } else {
         console.error("An unexpected error occurred:", error);
       }
@@ -111,35 +123,27 @@ function App() {
   return (
     <div className="bg-gray-900 text-gray-200 min-h-screen">
       <EnhancedHeader onDateRangeChange={() => {}} />
-
       <main className="container mx-auto px-6 py-8">
-        {/* Pass the live stats down to the component */}
         <SmartStatCards stats={stats} />
-        
         <div className="mt-8">
           <InteractiveChart data={chartData} onDataPointClick={() => {}} />
         </div>
-
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-5 gap-8">
           <div className="lg:col-span-3">
-             <ActivityHeatMap />
+             <ActivityHeatMap data={heatMapData} />
           </div>
           <div className="lg:col-span-2">
-            {/* Pass the API call function down to the component */}
-            <ControlPanel 
+            <ControlPanel
               onSendRequest={makeApiRequest}
               isSimulating={isSimulating}
               onToggleSimulation={handleToggleSimulation}
             />
           </div>
         </div>
-        
         <div className="mt-8">
-          {/* Pass the live logs down to the component */}
           <AdvancedEventLog logs={logs} />
         </div>
       </main>
-      
       <Toaster />
     </div>
   );

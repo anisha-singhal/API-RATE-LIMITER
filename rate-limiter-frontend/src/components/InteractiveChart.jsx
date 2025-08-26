@@ -2,23 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 
 const InteractiveChart = ({ data, onDataPointClick }) => {
-  const [data, setData] = useState([]);
-  const [deployments, setDeployments] = useState([]);
-
-  useEffect(() => {
-    const now = Date.now();
-    const initialData = [];
-    for (let i = 59; i >= 0; i--) {
-      const timestamp = now - i * 1000 * 60; // Faking 60 minutes of data
-      initialData.push({
-        time: new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        successful: Math.floor(Math.random() * 50) + 10,
-        blocked: Math.floor(Math.random() * 15) + 2,
-        timestamp,
-      });
-    }
-    setData(initialData);
-  }, []);
 
   const handleChartClick = useCallback((data) => {
     if (data && data.activePayload && data.activePayload[0]) {
