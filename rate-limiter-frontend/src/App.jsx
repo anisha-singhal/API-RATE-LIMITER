@@ -18,6 +18,7 @@ function App() {
   });
 
   const [isSimulating, setIsSimulating] = useState(false);
+  const [chartData, setChartData] = useState([]);
 
   useEffect(() => {
     let intervalId = null;
@@ -40,6 +41,31 @@ function App() {
   };
   
   const makeApiRequest = async () => {
+    const updateChart = (status) => {
+      setChartData(currentData => {
+        const now = new Date();
+        const currentTimeSlot = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds()).getTime();
+        
+        const newData = [...currentData];
+        const lastPoint = newData[newData.length - 1];
+
+        if (lastPoint && lastPoint.timestamp === currentTimeSlot) {
+          // Update the last data point if it's in the same second
+          if (status === 'success') lastPoint.successful += 1;
+          if (status === 'blocked') lastPoint.blocked += 1;
+        } else {
+          // Add a new data point for the new second
+          newData.push({
+            timestamp: currentTimeSlot,
+            time: new Date(currentTimeSlot).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            successful: status === 'success' ? 1 : 0,
+            blocked: status === 'blocked' ? 1 : 0,
+          });
+        }
+        // Keep only the last 60 seconds of data
+        return newData.length > 60 ? newData.slice(-60) : newData;
+      });
+    };
     try {
       // GET request to backend server
       const response = await axios.get('http://localhost:8000/api/data');
@@ -58,6 +84,7 @@ function App() {
       // Update the state
       setStats(prevStats => ({ ...prevStats, tokensRemaining: remainingTokens }));
       setLogs(prevLogs => [newLog, ...prevLogs]);
+      updateChart('success');
 
     } catch (error) {
       if (error.response && error.response.status === 429) {
@@ -74,6 +101,7 @@ function App() {
         // Update the state
         setStats(prevStats => ({ ...prevStats, tokensRemaining: remainingTokens }));
         setLogs(prevLogs => [newLog, ...prevLogs]);
+        updateChart('blocked');
       } else {
         console.error("An unexpected error occurred:", error);
       }
@@ -82,14 +110,14 @@ function App() {
 
   return (
     <div className="bg-gray-900 text-gray-200 min-h-screen">
-      <EnhancedHeader />
+      <EnhancedHeader onDateRangeChange={() => {}} />
 
       <main className="container mx-auto px-6 py-8">
         {/* Pass the live stats down to the component */}
         <SmartStatCards stats={stats} />
         
         <div className="mt-8">
-          <InteractiveChart onDataPointClick={() => {}} />
+          <InteractiveChart data={chartData} onDataPointClick={() => {}} />
         </div>
 
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-5 gap-8">
@@ -98,7 +126,11 @@ function App() {
           </div>
           <div className="lg:col-span-2">
             {/* Pass the API call function down to the component */}
-            <ControlPanel onSendRequest={makeApiRequest} />
+            <ControlPanel 
+              onSendRequest={makeApiRequest}
+              isSimulating={isSimulating}
+              onToggleSimulation={handleToggleSimulation}
+            />
           </div>
         </div>
         
