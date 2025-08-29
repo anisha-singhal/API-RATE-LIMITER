@@ -13,10 +13,11 @@ const redis = new Redis({ host: '127.0.0.1', port: 6379 });
  */
 const tokenBucketRateLimiter = async (req, res, next) => {
   // parameters for the rate limiter.
-  const BUCKET_SIZE = 10; // The maximum number of requests a user can make in a short burst.
-  const REFILL_RATE = 2; // The number of tokens that are added back to the bucket each second.
 
   try {
+    const config = await redis.hgetall('rate-limiter-config');
+    const BUCKET_SIZE = parseInt(config.bucketSize, 10) || 10;
+    const REFILL_RATE = parseInt(config.refillRate, 10) || 2;
     // Identify the user by their IP address. This will serve as the unique key in Redis.
     const ip = req.ip;
     const key = `user:${ip}`;
@@ -55,6 +56,7 @@ const tokenBucketRateLimiter = async (req, res, next) => {
     // Add custom headers to the response to inform the client of their current rate limit status.
     res.set('X-RateLimit-Limit', BUCKET_SIZE);
     res.set('X-RateLimit-Remaining', Math.floor(bucket.tokens));
+    res.set('X-RateLimit-Refill-Rate', REFILL_RATE);
 
     // Check if the user has at least one token to spend.
     if (bucket.tokens >= 1) {
@@ -66,10 +68,11 @@ const tokenBucketRateLimiter = async (req, res, next) => {
       
       // The request is allowed. Pass control to the next middleware or the API endpoint.
       next();
-    } else {
-      // If the bucket is empty, block the request.
-      res.status(429).send('Too Many Requests');
-    }
+    }  else {
+    // If the bucket is empty, still save the refilled state, then block.
+    await redis.hset(key, 'tokens', bucket.tokens, 'lastRefill', bucket.lastRefill);
+    res.status(429).send('Too Many Requests');
+  }
   } catch (error) {
     // If any error occurs we pass the error
     next(error);

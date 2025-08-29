@@ -87,6 +87,8 @@ function App() {
     try {
       const response = await axios.get('http://localhost:8000/api/data');
       const remainingTokens = parseFloat(response.headers['x-ratelimit-remaining']);
+      const bucketCapacity = parseInt(response.headers['x-ratelimit-limit'], 10);
+      const refillRate = parseInt(response.headers['x-ratelimit-refill-rate'], 10);
       const newLog = {
         id: Math.random().toString(36).substring(7),
         timestamp: new Date(),
@@ -95,7 +97,12 @@ function App() {
         path: '/api/data',
         latency: Math.floor(Math.random() * (100 - 30) + 30),
       };
-      setStats(prevStats => ({ ...prevStats, tokensRemaining: remainingTokens }));
+      setStats(prevStats => ({ 
+      ...prevStats, 
+      tokensRemaining: remainingTokens,
+      bucketCapacity: bucketCapacity,
+      refillRate: `${refillRate}/sec`
+      }));
       setLogs(prevLogs => [newLog, ...prevLogs]);
       updateChart('success');
       updateHeatMap(); // Call heat map update
