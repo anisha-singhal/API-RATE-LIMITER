@@ -7,6 +7,7 @@ import ActivityHeatMap from '@/components/ActivityHeatMap';
 import ControlPanel from '@/components/ControlPanel';
 import AdvancedEventLog from '@/components/AdvancedEventLog';
 import { Toaster } from "@/components/ui/toaster";
+import { useToast } from "@/components/ui/use-toast"; 
 
 function App() {
   const [logs, setLogs] = useState([]);
@@ -18,16 +19,15 @@ function App() {
   });
   const [isSimulating, setIsSimulating] = useState(false);
   const [chartData, setChartData] = useState([]);
-  
-  // --- STATE FOR HEAT MAP DATA ---
   const [heatMapData, setHeatMapData] = useState(Array.from({ length: 120 }, () => ({ requests: 0, intensity: 0 })));
+  const { toast } = useToast();
 
   useEffect(() => {
     let intervalId = null;
     if (isSimulating) {
       intervalId = setInterval(() => {
         makeApiRequest();
-      }, 1000);
+      }, 700);
     }
     return () => {
       if (intervalId) {
@@ -40,6 +40,16 @@ function App() {
     setIsSimulating(prevState => !prevState);
   };
 
+  const handleDateRangeChange = (range) => {
+    setLogs([]);
+    setChartData([]);
+    toast({
+      title: "View Updated",
+      description: `Displaying data for ${range}.`,
+    });
+  };
+
+
   const makeApiRequest = async () => {
     const updateChart = (status) => {
       setChartData(currentData => {
@@ -47,6 +57,7 @@ function App() {
         const currentTimeSlot = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds()).getTime();
         const newData = [...currentData];
         const lastPoint = newData[newData.length - 1];
+
         if (lastPoint && lastPoint.timestamp === currentTimeSlot) {
           const updatedPoint = { ...lastPoint };
           if (status === 'success') updatedPoint.successful += 1;
@@ -64,31 +75,27 @@ function App() {
       });
     };
 
-    // --- HELPER FUNCTION FOR HEAT MAP ---
     const updateHeatMap = () => {
       setHeatMapData(currentHeatMap => {
         const newHeatMap = [...currentHeatMap];
-        // Remove the oldest data point from the beginning
-        newHeatMap.shift(); 
-        
-        // Add a new, random-intensity data point at the end
-        const requests = Math.floor(Math.random() * 20); // Simulate random intensity
+        newHeatMap.shift();
+        const requests = Math.floor(Math.random() * 20);
         let intensity = 0;
         if (requests > 15) intensity = 3;
         else if (requests > 10) intensity = 2;
         else if (requests > 5) intensity = 1;
-
         newHeatMap.push({ requests, intensity });
-        
         return newHeatMap;
       });
     };
 
     try {
       const response = await axios.get('http://localhost:8000/api/data');
+      
       const remainingTokens = parseFloat(response.headers['x-ratelimit-remaining']);
       const bucketCapacity = parseInt(response.headers['x-ratelimit-limit'], 10);
       const refillRate = parseInt(response.headers['x-ratelimit-refill-rate'], 10);
+
       const newLog = {
         id: Math.random().toString(36).substring(7),
         timestamp: new Date(),
@@ -97,18 +104,23 @@ function App() {
         path: '/api/data',
         latency: Math.floor(Math.random() * (100 - 30) + 30),
       };
-      setStats(prevStats => ({ 
-      ...prevStats, 
-      tokensRemaining: remainingTokens,
-      bucketCapacity: bucketCapacity,
-      refillRate: `${refillRate}/sec`
-      }));
+      
+      setStats({ 
+        ...stats, 
+        tokensRemaining: remainingTokens,
+        bucketCapacity: bucketCapacity,
+        refillRate: `${refillRate}/sec`
+      });
       setLogs(prevLogs => [newLog, ...prevLogs]);
       updateChart('success');
-      updateHeatMap(); // Call heat map update
+      updateHeatMap();
+
     } catch (error) {
       if (error.response && error.response.status === 429) {
         const remainingTokens = parseFloat(error.response.headers['x-ratelimit-remaining']);
+        const bucketCapacity = parseInt(error.response.headers['x-ratelimit-limit'], 10);
+        const refillRate = parseInt(error.response.headers['x-ratelimit-refill-rate'], 10);
+        
         const newLog = {
           id: Math.random().toString(36).substring(7),
           timestamp: new Date(),
@@ -117,10 +129,16 @@ function App() {
           path: '/api/data',
           latency: Math.floor(Math.random() * (40 - 10) + 10),
         };
-        setStats(prevStats => ({ ...prevStats, tokensRemaining: remainingTokens }));
+        
+        setStats({ 
+          ...stats, 
+          tokensRemaining: remainingTokens,
+          bucketCapacity: bucketCapacity,
+          refillRate: `${refillRate}/sec`
+        });
         setLogs(prevLogs => [newLog, ...prevLogs]);
         updateChart('blocked');
-        updateHeatMap(); // Call heat map update
+        updateHeatMap();
       } else {
         console.error("An unexpected error occurred:", error);
       }
@@ -129,7 +147,7 @@ function App() {
 
   return (
     <div className="bg-gray-900 text-gray-200 min-h-screen">
-      <EnhancedHeader onDateRangeChange={() => {}} />
+      <EnhancedHeader onDateRangeChange={() => {handleDateRangeChange}} />
       <main className="container mx-auto px-6 py-8">
         <SmartStatCards stats={stats} />
         <div className="mt-8">
