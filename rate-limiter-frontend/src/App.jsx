@@ -145,9 +145,27 @@ function App() {
     }
   };
 
+  const handleUpdateConfig = async (config) => {
+    try {
+      await axios.post('http://localhost:8000/api/config', config);
+      toast({
+        title: "Configuration Updated",
+        description: `Bucket size set to ${config.bucketSize}, refill rate to ${config.refillRate}/sec.`,
+      });
+      makeApiRequest();
+    } catch (error) {
+      console.error("Failed to update config:", error);
+      toast({
+        title: "Update Failed",
+        description: "Could not apply the new configuration.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="bg-gray-900 text-gray-200 min-h-screen">
-      <EnhancedHeader onDateRangeChange={() => {handleDateRangeChange}} />
+      <EnhancedHeader onDateRangeChange={handleDateRangeChange} />
       <main className="container mx-auto px-6 py-8">
         <SmartStatCards stats={stats} />
         <div className="mt-8">
@@ -162,6 +180,7 @@ function App() {
               onSendRequest={makeApiRequest}
               isSimulating={isSimulating}
               onToggleSimulation={handleToggleSimulation}
+              onUpdateConfig={handleUpdateConfig}
             />
           </div>
         </div>

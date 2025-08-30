@@ -44,6 +44,7 @@ const ControlPanel = ({ onSendRequest, isSimulating, onToggleSimulation, onUpdat
                 id="simulate-traffic"
                 checked={isSimulating}
                 onCheckedChange={onToggleSimulation}
+                className="data-[state=unchecked]:bg-slate-800 data-[state=checked]:bg-primary"
               />
               <Zap className={`w-4 h-4 transition-colors ${isSimulating ? 'text-yellow-400' : 'text-gray-500'}`} />
             </div>
@@ -75,7 +76,7 @@ const ControlPanel = ({ onSendRequest, isSimulating, onToggleSimulation, onUpdat
               onChange={(e) => setRefillRate(e.target.value)}
             />
           </div>
-          <Button onClick={handleApplyChanges} className="w-full bg-green-600 hover:bg-green-700">
+          <Button onClick={handleApplyChanges} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
             <Save className="mr-2 h-4 w-4" /> Apply Changes
           </Button>
         </div>
