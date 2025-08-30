@@ -10,24 +10,16 @@ const AdvancedEventLog = ({ logs = [], filterTimestamp }) => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [expandedRows, setExpandedRows] = useState(new Set());
 
-  const parseFilter = (filterStr) => {
-    const filters = {};
-    const parts = filterStr.split(" AND ");
-    parts.forEach(part => {
-      const separatorIndex = part.indexOf(":");
-      if (separatorIndex > -1) {
-        const key = part.substring(0, separatorIndex).trim();
-        const value = part.substring(separatorIndex + 1).trim();
-        filters[key] = value;
-      } else {
-        filters.general = part.trim();
-      }
-    });
-    return filters;
-  };
+  const parsedLogs = useMemo(() => {
+    if (!logs) return [];
+    return logs.map(log => ({
+      ...log,
+      timestamp: typeof log.timestamp === 'string' ? new Date(log.timestamp) : log.timestamp
+    }));
+  }, [logs]);
 
   const filteredLogs = useMemo(() => {
-    let filtered = [...logs];
+    let filtered = [...parsedLogs]; 
     if (filterTimestamp) {
       filtered = filtered.filter(log => Math.abs(log.timestamp.getTime() - filterTimestamp) < 5000);
     }
@@ -44,7 +36,7 @@ const AdvancedEventLog = ({ logs = [], filterTimestamp }) => {
     }
     filtered.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
     return filtered;
-  }, [logs, filter, statusFilter, filterTimestamp]);
+  }, [parsedLogs, filter, statusFilter, filterTimestamp]); 
 
   const toggleRowExpansion = (id) => {
     setExpandedRows(prev => {
