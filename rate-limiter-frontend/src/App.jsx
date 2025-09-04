@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import EnhancedHeader from '@/components/EnhancedHeader';
 import SmartStatCards from '@/components/SmartStatCards';
@@ -16,7 +16,7 @@ const getInitialState = (key, defaultValue) => {
     const storedValue = localStorage.getItem(key);
     if (storedValue) {
       const parsed = JSON.parse(storedValue);
-      if (Array.isArray(parsed) && (key === 'allLogs' || key === 'allChartData')) {
+      if (Array.isArray(parsed)) {
           return parsed.map(item => ({...item, timestamp: new Date(item.timestamp)}));
       }
       return parsed;
@@ -27,11 +27,19 @@ const getInitialState = (key, defaultValue) => {
   return defaultValue;
 };
 
-function App() {
-  const [activeDateRange, setActiveDateRange] = useState('60m');
+const timeRanges = {
+    '60m': 60 * 60 * 1000,
+    '24h': 24 * 60 * 60 * 1000,
+    '7d': 7 * 24 * 60 * 60 * 1000,
+    '30d': 30 * 24 * 60 * 60 * 1000,
+};
 
+function App() {
+  const [activeDateRange, setActiveDateRange] = useState({ label: 'Last 60 mins', value: '60m' });
+  
   const [allLogs, setAllLogs] = useState(() => getInitialState('allLogs', []));
   const [allChartData, setAllChartData] = useState(() => getInitialState('allChartData', []));
+  const [heatMapData, setHeatMapData] = useState(() => getInitialState('heatMapData', Array.from({ length: 120 }, () => ({ requests: 0, intensity: 0 }))));
 
   const [stats, setStats] = useState({
     tokensRemaining: 10,
@@ -39,9 +47,7 @@ function App() {
     refillRate: '2/sec',
     blocked24h: 0,
   });
-  
   const [isSimulating, setIsSimulating] = useState(false);
-  const [heatMapData, setHeatMapData] = useState(Array.from({ length: 120 }, () => ({ requests: 0, intensity: 0 })));
   const { toast } = useToast();
 
   useEffect(() => {
@@ -58,111 +64,81 @@ function App() {
     fetchInitialConfig();
   }, [toast]);
 
-  //Save logs and chart data to localStorage whenever they change.
   useEffect(() => {
-    try {
-      localStorage.setItem('allLogs', JSON.stringify(allLogs));
-      localStorage.setItem('allChartData', JSON.stringify(allChartData));
-    } catch (error) {
-      console.error('Failed to save state to localStorage:', error);
-    }
-  }, [allLogs, allChartData]);
+    localStorage.setItem('allLogs', JSON.stringify(allLogs));
+    localStorage.setItem('allChartData', JSON.stringify(allChartData));
+    localStorage.setItem('heatMapData', JSON.stringify(heatMapData));
+  }, [allLogs, allChartData, heatMapData]);
 
   useEffect(() => {
     let intervalId = null;
     if (isSimulating) {
-      intervalId = setInterval(() => {
-        makeApiRequest();
-      }, 700);
+      intervalId = setInterval(() => { makeApiRequest(); }, 700);
     }
     return () => clearInterval(intervalId);
-  }, [isSimulating, activeDateRange]);
+  }, [isSimulating]);
 
   const handleToggleSimulation = () => setIsSimulating(prevState => !prevState);
 
   const handleDateRangeChange = (range) => {
-    // Note: expects an object like { label: 'Last 60 mins', value: '60m' }
-    setActiveDateRange(range.value); 
-    toast({
-      title: "View Updated",
-      description: `Displaying data for ${range.label}.`,
-    });
+    setActiveDateRange(range); 
+    toast({ title: "View Updated", description: `Displaying data for ${range.label}.` });
   };
 
   const makeApiRequest = async () => {
-    const updateChart = (status) => {
-      setAllChartData(currentAllData => {
-        const currentData = currentAllData[activeDateRange] || [];
-        const now = new Date();
-        const currentTimeSlot = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds()).getTime();
-        const newData = [...currentData];
-        const lastPoint = newData[newData.length - 1];
-
-        if (lastPoint && lastPoint.timestamp === currentTimeSlot) {
-          const updatedPoint = { ...lastPoint };
-          if (status === 'success') updatedPoint.successful += 1;
-          if (status === 'blocked') updatedPoint.blocked += 1;
-          newData[newData.length - 1] = updatedPoint;
-        } else {
-          newData.push({
-            timestamp: currentTimeSlot,
-            time: new Date(currentTimeSlot).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-            successful: status === 'success' ? 1 : 0,
-            blocked: status === 'blocked' ? 1 : 0,
-          });
-        }
-        
-        const finalData = newData.length > 60 ? newData.slice(-60) : newData;
-        return { ...currentAllData, [activeDateRange]: finalData };
-      });
+    const newLog = { 
+        id: Math.random().toString(36).substring(7), 
+        timestamp: new Date(),
     };
-
-    const updateHeatMap = () => {
-      setHeatMapData(currentHeatMap => {
-        const newHeatMap = [...currentHeatMap];
-        newHeatMap.shift();
-        const requests = Math.floor(Math.random() * 20);
-        let intensity = 0;
-        if (requests > 15) intensity = 3; else if (requests > 10) intensity = 2; else if (requests > 5) intensity = 1;
-        newHeatMap.push({ requests, intensity });
-        return newHeatMap;
-      });
-    };
-
     try {
       const response = await axios.get(`${API_BASE_URL}/api/data`);
       const { headers } = response;
-      const newLog = { id: Math.random().toString(36).substring(7), timestamp: new Date(), status: 'success', method: 'GET', path: '/api/data', latency: Math.floor(Math.random() * (100 - 30) + 30) };
-      
-      setStats(prevStats => ({ 
-        ...prevStats,
-        tokensRemaining: parseFloat(headers['x-ratelimit-remaining']),
-        bucketCapacity: parseInt(headers['x-ratelimit-limit'], 10),
-        refillRate: `${parseInt(headers['x-ratelimit-refill-rate'], 10)}/sec`,
-      }));
-      setAllLogs(prevLogs => ({ ...prevLogs, [activeDateRange]: [newLog, ...(prevLogs[activeDateRange] || [])] }));
-      updateChart('success');
-      updateHeatMap();
-
+      newLog.status = 'success';
+      setStats(prev => ({ ...prev, tokensRemaining: parseFloat(headers['x-ratelimit-remaining']) }));
     } catch (error) {
       if (error.response && error.response.status === 429) {
-        const { headers } = error.response;
-        const newLog = { id: Math.random().toString(36).substring(7), timestamp: new Date(), status: 'blocked', method: 'GET', path: '/api/data', latency: Math.floor(Math.random() * (40 - 10) + 10) };
-
-        setStats(prevStats => ({ 
-          ...prevStats,
-          tokensRemaining: parseFloat(headers['x-ratelimit-remaining']),
-          bucketCapacity: parseInt(headers['x-ratelimit-limit'], 10),
-          refillRate: `${parseInt(headers['x-ratelimit-refill-rate'], 10)}/sec`,
-          blocked24h: prevStats.blocked24h + 1,
-        }));
-        setAllLogs(prevLogs => ({ ...prevLogs, [activeDateRange]: [newLog, ...(prevLogs[activeDateRange] || [])] }));
-        updateChart('blocked');
-        updateHeatMap();
+          newLog.status = 'blocked';
+          setStats(prev => ({ ...prev, tokensRemaining: 0, blocked24h: prev.blocked24h + 1 }));
       } else {
-        console.error("An unexpected error occurred:", error);
+          console.error("API Error", error);
+          toast({ title: "API Error", description: "The backend is not responding.", variant: "destructive"});
+          return;
       }
     }
+    
+    setAllLogs(prev => [newLog, ...prev]);
+    
+    setAllChartData(prevData => {
+        const now = new Date();
+        const currentTimeSlot = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes()).getTime();
+        const newData = [...prevData];
+        const lastPoint = newData[newData.length - 1];
+
+        if (lastPoint && lastPoint.timestamp === currentTimeSlot) {
+            if (newLog.status === 'success') lastPoint.successful += 1;
+            if (newLog.status === 'blocked') lastPoint.blocked += 1;
+        } else {
+            newData.push({
+                timestamp: currentTimeSlot,
+                time: new Date(currentTimeSlot).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                successful: newLog.status === 'success' ? 1 : 0,
+                blocked: newLog.status === 'blocked' ? 1 : 0,
+            });
+        }
+        return newData;
+    });
+
+    setHeatMapData(currentHeatMap => {
+        const newHeatMap = [...currentHeatMap];
+        const targetIndex = Math.floor(Math.random() * newHeatMap.length);
+        const targetBlock = { ...newHeatMap[targetIndex] };
+        targetBlock.requests = (targetBlock.requests || 0) + 1;
+        if (targetBlock.requests > 5) targetBlock.intensity = 3;
+        else if (targetBlock.requests > 2) targetBlock.intensity = 2;
+        else targetBlock.intensity = 1;
+        newHeatMap[targetIndex] = targetBlock;
+        return newHeatMap;
+    });
   };
 
   const handleUpdateConfig = async (config) => {
@@ -172,23 +148,36 @@ function App() {
         title: "Configuration Updated",
         description: `Bucket size set to ${config.bucketSize}, refill rate to ${config.refillRate}/sec.`,
       });
-      makeApiRequest(); // Refresh stats after update
+      const response = await axios.get(`${API_BASE_URL}/api/config`);
+      const { bucketSize, refillRate } = response.data;
+      setStats(prev => ({ ...prev, bucketCapacity: bucketSize, refillRate: `${refillRate}/sec`, tokensRemaining: bucketSize }));
     } catch (error) {
       console.error("Failed to update config:", error);
-      toast({ title: "Update Failed", description: "Could not apply the new configuration.", variant: "destructive" });
+      toast({ title: "Update Failed", description: "Could not apply new configuration.", variant: "destructive" });
     }
   };
+  
+  const filteredLogs = useMemo(() => {
+    if (!allLogs) return [];
+    const timeLimit = timeRanges[activeDateRange.value];
+    const now = Date.now();
+    return allLogs.filter(log => (now - log.timestamp.getTime()) < timeLimit);
+  }, [allLogs, activeDateRange]);
 
-  const filteredLogs = allLogs; 
-  const filteredChartData = allChartData; 
+  const filteredChartData = useMemo(() => {
+    if (!allChartData) return [];
+    const timeLimit = timeRanges[activeDateRange.value];
+    const now = Date.now();
+    return allChartData.filter(point => (now - point.timestamp) < timeLimit);
+  }, [allChartData, activeDateRange]);
 
   return (
     <div className="bg-gray-900 text-gray-200 min-h-screen">
-      <EnhancedHeader onDateRangeChange={handleDateRangeChange} />
+      <EnhancedHeader activeRange={activeDateRange} onDateRangeChange={handleDateRangeChange} />
       <main className="container mx-auto px-6 py-8">
         <SmartStatCards stats={stats} />
         <div className="mt-8">
-          <InteractiveChart data={allChartData[activeDateRange]} onDataPointClick={() => {}} />
+          <InteractiveChart data={filteredChartData} />
         </div>
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-5 gap-8">
           <div className="lg:col-span-3">
@@ -204,7 +193,7 @@ function App() {
           </div>
         </div>
         <div className="mt-8">
-          <AdvancedEventLog logs={allLogs[activeDateRange]} />
+          <AdvancedEventLog logs={filteredLogs} />
         </div>
       </main>
       <Toaster />
