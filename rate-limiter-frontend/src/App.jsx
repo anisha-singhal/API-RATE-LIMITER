@@ -19,7 +19,6 @@ const getInitialState = (key, defaultValue) => {
       if (Array.isArray(parsed)) {
           return parsed.map(item => ({...item, timestamp: new Date(item.timestamp)}));
       }
-      return parsed;
     }
   } catch (error) {
     console.error(`Error reading from localStorage for key "${key}":`, error);
