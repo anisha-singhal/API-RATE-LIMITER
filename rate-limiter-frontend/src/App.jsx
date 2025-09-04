@@ -9,11 +9,17 @@ import AdvancedEventLog from '@/components/AdvancedEventLog';
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/components/ui/use-toast";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
 const getInitialState = (key, defaultValue) => {
   try {
     const storedValue = localStorage.getItem(key);
     if (storedValue) {
-      return JSON.parse(storedValue);
+      const parsed = JSON.parse(storedValue);
+      if (Array.isArray(parsed) && (key === 'allLogs' || key === 'allChartData')) {
+          return parsed.map(item => ({...item, timestamp: new Date(item.timestamp)}));
+      }
+      return parsed;
     }
   } catch (error) {
     console.error(`Error reading from localStorage for key "${key}":`, error);
@@ -23,24 +29,34 @@ const getInitialState = (key, defaultValue) => {
 
 function App() {
   const [activeDateRange, setActiveDateRange] = useState('60m');
-  
-  // The state now initializes from localStorage, or a default value.
-  const [allLogs, setAllLogs] = useState(() => getInitialState('allLogs', {
-    '60m': [], '24h': [], '7d': [], '30d': [],
-  }));
-  const [allChartData, setAllChartData] = useState(() => getInitialState('allChartData', {
-    '60m': [], '24h': [], '7d': [], '30d': [],
-  }));
+
+  const [allLogs, setAllLogs] = useState(() => getInitialState('allLogs', []));
+  const [allChartData, setAllChartData] = useState(() => getInitialState('allChartData', []));
 
   const [stats, setStats] = useState({
     tokensRemaining: 10,
     bucketCapacity: 10,
     refillRate: '2/sec',
-    blocked24h: 1421,
+    blocked24h: 0,
   });
+  
   const [isSimulating, setIsSimulating] = useState(false);
   const [heatMapData, setHeatMapData] = useState(Array.from({ length: 120 }, () => ({ requests: 0, intensity: 0 })));
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchInitialConfig = async () => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/api/config`);
+            const { bucketSize, refillRate } = response.data;
+            setStats(prev => ({ ...prev, bucketCapacity: bucketSize, tokensRemaining: bucketSize, refillRate: `${refillRate}/sec` }));
+        } catch (error) {
+            console.error("Could not fetch initial config", error);
+            toast({ title: "Connection Error", description: "Could not sync with the backend.", variant: "destructive" });
+        }
+    };
+    fetchInitialConfig();
+  }, [toast]);
 
   //Save logs and chart data to localStorage whenever they change.
   useEffect(() => {
@@ -114,7 +130,7 @@ function App() {
     };
 
     try {
-      const response = await axios.get('http://localhost:8000/api/data');
+      const response = await axios.get(`${API_BASE_URL}/api/data`);
       const { headers } = response;
       const newLog = { id: Math.random().toString(36).substring(7), timestamp: new Date(), status: 'success', method: 'GET', path: '/api/data', latency: Math.floor(Math.random() * (100 - 30) + 30) };
       
@@ -151,7 +167,7 @@ function App() {
 
   const handleUpdateConfig = async (config) => {
     try {
-      await axios.post('http://localhost:8000/api/config', config);
+      await axios.post(`${API_BASE_URL}/api/config`, config);
       toast({
         title: "Configuration Updated",
         description: `Bucket size set to ${config.bucketSize}, refill rate to ${config.refillRate}/sec.`,
@@ -162,6 +178,9 @@ function App() {
       toast({ title: "Update Failed", description: "Could not apply the new configuration.", variant: "destructive" });
     }
   };
+
+  const filteredLogs = allLogs; 
+  const filteredChartData = allChartData; 
 
   return (
     <div className="bg-gray-900 text-gray-200 min-h-screen">
