@@ -114,8 +114,12 @@ function App() {
         const lastPoint = newData[newData.length - 1];
 
         if (lastPoint && lastPoint.timestamp === currentTimeSlot) {
-            if (newLog.status === 'success') lastPoint.successful += 1;
-            if (newLog.status === 'blocked') lastPoint.blocked += 1;
+            const updatedPoint = { ...lastPoint };
+
+            if (newLog.status === 'success') updatedPoint.successful += 1;
+            if (newLog.status === 'blocked') updatedPoint.blocked += 1;
+            
+            newData[newData.length - 1] = updatedPoint;
         } else {
             newData.push({
                 timestamp: currentTimeSlot,
@@ -201,4 +205,3 @@ function App() {
 }
 
 export default App;
-
