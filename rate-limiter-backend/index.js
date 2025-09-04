@@ -14,19 +14,25 @@ app.use(cors({
 app.set('trust proxy', 1);
 
 let redis;
-if (process.env.NODE_ENV === 'production') {
-  redis = new Redis(process.env.REDIS_URL, {
-    socket: {
-      tls: true,
+if (process.env.REDIS_HOST) {
+  // This logic builds the connection URL from your existing environment variables.
+  const redisURL = `redis://:${process.env.REDIS_PASSWORD}@${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`;
+  redis = new Redis(redisURL, {
+    // A secure tls connection is needed for external Redis providers.
+    tls: {
       rejectUnauthorized: false
     }
   });
-  console.log('Connecting to Redis in production mode...');
+  console.log('Connecting to external Redis provided by environment variables...');
 } else {
+  // If no REDIS_HOST is found, we connect to the local database 
   redis = new Redis({ host: '127.0.0.1', port: 6379 });
   console.log('Connecting to Redis in local mode...');
 }
+
+
 redis.on('connect', () => console.log('Successfully connected to Redis.'));
+redis.on('error', (err) => console.error('Redis Client Error:', err));
 
 const PORT = process.env.PORT || 8000;
 
