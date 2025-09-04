@@ -1,9 +1,3 @@
-// Import the ioredis library
-const Redis = require('ioredis');
-
-// Initialize a new Redis client instance.
-const redis = new Redis({ host: '127.0.0.1', port: 6379 });
-
 /**
  * An Express middleware that implements the Token Bucket algorithm for API rate limiting.
  * It uses Redis as a persistent, centralized data store for scalability.
@@ -11,7 +5,7 @@ const redis = new Redis({ host: '127.0.0.1', port: 6379 });
  * @param {object} res - The Express response object.
  * @param {function} next - The callback function to pass control to the next middleware.
  */
-const tokenBucketRateLimiter = async (req, res, next) => {
+const tokenBucketRateLimiter = (redis) => async (req, res, next) => {
   // parameters for the rate limiter.
 
   try {
