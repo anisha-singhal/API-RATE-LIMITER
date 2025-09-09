@@ -38,39 +38,41 @@ const InteractiveChart = ({ data = [], onDataPointClick }) => {
 
   return (
     <div className="bg-gray-800/50 rounded-xl p-6 mb-8 border border-gray-700 backdrop-blur-sm">
-      <div className="mb-6">
+      <div className="mb-4">
         <h2 className="text-lg font-semibold text-white">Interactive Traffic Analysis</h2>
-        <div className="flex items-center space-x-6 mt-4">
+        <div className="flex items-center space-x-6 mt-3">
           <div className="flex items-center space-x-2"><div className="w-3 h-3 bg-blue-500 rounded-full" /><span className="text-sm text-gray-400">Successful</span></div>
           <div className="flex items-center space-x-2"><div className="w-3 h-3 bg-red-500 rounded-full" /><span className="text-sm text-gray-400">Blocked</span></div>
         </div>
       </div>
       
-      <div className="h-72">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} onClick={handleChartClick} className="cursor-crosshair">
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-            <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} tickLine={false} axisLine={false} />
-            <YAxis stroke="#9CA3AF" fontSize={12} tickLine={false} axisLine={false} />
-            <Tooltip content={<CustomTooltip />} />
-            <Line
-              type="monotone"
-              dataKey="successful"
-              stroke="#3B82F6" // Blue
-              strokeWidth={2}
-              dot={false}
-              name="Successful"
-            />
-            <Line
-              type="monotone"
-              dataKey="blocked"
-              stroke="#EF4444" // Red
-              strokeWidth={2}
-              dot={false}
-              name="Blocked"
-            />
-          </LineChart>
-        </ResponsiveContainer>
+      <div className="overflow-x-auto md:overflow-visible">
+        <div className="h-72 w-[960px] sm:w-[1100px] md:w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data} onClick={handleChartClick} className="cursor-crosshair">
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+              <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis stroke="#9CA3AF" fontSize={12} tickLine={false} axisLine={false} />
+              <Tooltip content={<CustomTooltip />} />
+              <Line
+                type="monotone"
+                dataKey="successful"
+                stroke="#3B82F6" // Blue
+                strokeWidth={2}
+                dot={false}
+                name="Successful"
+              />
+              <Line
+                type="monotone"
+                dataKey="blocked"
+                stroke="#EF4444" // Red
+                strokeWidth={2}
+                dot={false}
+                name="Blocked"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </div>
   );

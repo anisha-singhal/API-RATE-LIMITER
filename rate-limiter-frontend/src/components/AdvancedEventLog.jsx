@@ -59,20 +59,29 @@ const AdvancedEventLog = ({ logs = [], filterTimestamp }) => {
 
   return (
     <div className="bg-gray-800/50 rounded-xl p-6 mb-8 border border-gray-700 backdrop-blur-sm">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-lg font-semibold text-white">Advanced Event Log</h2>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
-            <Input
-              placeholder="Filter logs..."
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="pl-9 w-64 bg-gray-900 border-gray-700"
-            />
+      <div className="mb-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between md:mb-2">
+          <h2 className="text-lg font-semibold text-white mb-3 md:mb-0">Advanced Event Log</h2>
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <div className="relative flex-1 md:flex-initial">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
+              <Input
+                placeholder="Filter logs..."
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                className="pl-9 w-full md:w-64 bg-gray-900 border-gray-700"
+              />
+            </div>
+            {/* Desktop filter buttons */}
+            <div className="hidden md:flex items-center gap-2">
+              <Button variant={statusFilter === "all" ? "secondary" : "outline"} size="sm" onClick={() => setStatusFilter("all")}>All</Button>
+              <Button variant={statusFilter === "success" ? "secondary" : "outline"} size="sm" onClick={() => setStatusFilter("success")}>Success</Button>
+              <Button variant={statusFilter === "blocked" ? "secondary" : "outline"} size="sm" onClick={() => setStatusFilter("blocked")}>Blocked</Button>
+            </div>
           </div>
+        </div>
+        {/* Mobile quick filter chips */}
+        <div className="mt-3 flex md:hidden items-center gap-2">
           <Button variant={statusFilter === "all" ? "secondary" : "outline"} size="sm" onClick={() => setStatusFilter("all")}>All</Button>
           <Button variant={statusFilter === "success" ? "secondary" : "outline"} size="sm" onClick={() => setStatusFilter("success")}>Success</Button>
           <Button variant={statusFilter === "blocked" ? "secondary" : "outline"} size="sm" onClick={() => setStatusFilter("blocked")}>Blocked</Button>

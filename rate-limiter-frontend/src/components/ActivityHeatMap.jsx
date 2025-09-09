@@ -43,20 +43,35 @@ const ActivityHeatMap = ({ data = [] }) => {
         </p>
       </div>
 
-      {/* Mobile: single-row, horizontally scrollable */}
-      <div className="md:hidden overflow-x-auto pb-1">
-        <div
-          className="inline-grid"
-          style={{ gridTemplateColumns: `repeat(60, 12px)`, gap: `4px` }}
-        >
-          {processedData.map((cell, index) => (
-            <div
-              key={`m-${index}`}
-              className={`heatmap-cell rounded-[3px] ${getIntensityClass(cell)}`}
-              style={{ width: 12, height: 12 }}
-              title={getTooltipContent(cell)}
-            />
-          ))}
+      {/* Mobile: compact two rows (no scrolling) */}
+      <div className="md:hidden">
+        <div className="space-y-1">
+          <div
+            className="grid"
+            style={{ gridTemplateColumns: `repeat(30, minmax(0, 1fr))`, gap: `3px` }}
+          >
+            {topRow.map((cell, index) => (
+              <div key={`mtop-${index}`} className="relative w-full" style={{ paddingBottom: '100%' }}>
+                <div
+                  className={`absolute inset-0 heatmap-cell rounded-[3px] ${getIntensityClass(cell)}`}
+                  title={getTooltipContent(cell)}
+                />
+              </div>
+            ))}
+          </div>
+          <div
+            className="grid"
+            style={{ gridTemplateColumns: `repeat(30, minmax(0, 1fr))`, gap: `3px` }}
+          >
+            {bottomRow.map((cell, index) => (
+              <div key={`mbottom-${index}`} className="relative w-full" style={{ paddingBottom: '100%' }}>
+                <div
+                  className={`absolute inset-0 heatmap-cell rounded-[3px] ${getIntensityClass(cell)}`}
+                  title={getTooltipContent(cell)}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
