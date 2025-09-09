@@ -43,33 +43,52 @@ const ActivityHeatMap = ({ data = [] }) => {
         </p>
       </div>
 
-      {/* Two-row heatmap: matches the provided design */}
-      <div className="space-y-2">
+      {/* Mobile: single-row, horizontally scrollable */}
+      <div className="md:hidden overflow-x-auto pb-1">
         <div
           className="inline-grid"
-          style={{ gridTemplateColumns: `repeat(30, ${CELL_SIZE}px)`, gap: `${GAP}px` }}
+          style={{ gridTemplateColumns: `repeat(60, 12px)`, gap: `4px` }}
         >
-          {topRow.map((cell, index) => (
+          {processedData.map((cell, index) => (
             <div
-              key={`top-${index}`}
+              key={`m-${index}`}
               className={`heatmap-cell rounded-[3px] ${getIntensityClass(cell)}`}
-              style={{ width: CELL_SIZE, height: CELL_SIZE }}
+              style={{ width: 12, height: 12 }}
               title={getTooltipContent(cell)}
             />
           ))}
         </div>
-        <div
-          className="inline-grid"
-          style={{ gridTemplateColumns: `repeat(30, ${CELL_SIZE}px)`, gap: `${GAP}px` }}
-        >
-          {bottomRow.map((cell, index) => (
-            <div
-              key={`bottom-${index}`}
-              className={`heatmap-cell rounded-[3px] ${getIntensityClass(cell)}`}
-              style={{ width: CELL_SIZE, height: CELL_SIZE }}
-              title={getTooltipContent(cell)}
-            />
-          ))}
+      </div>
+
+      {/* md+ : Two-row heatmap: matches the provided design */}
+      <div className="hidden md:block">
+        <div className="space-y-2">
+          <div
+            className="inline-grid"
+            style={{ gridTemplateColumns: `repeat(30, ${CELL_SIZE}px)`, gap: `${GAP}px` }}
+          >
+            {topRow.map((cell, index) => (
+              <div
+                key={`top-${index}`}
+                className={`heatmap-cell rounded-[3px] ${getIntensityClass(cell)}`}
+                style={{ width: CELL_SIZE, height: CELL_SIZE }}
+                title={getTooltipContent(cell)}
+              />
+            ))}
+          </div>
+          <div
+            className="inline-grid"
+            style={{ gridTemplateColumns: `repeat(30, ${CELL_SIZE}px)`, gap: `${GAP}px` }}
+          >
+            {bottomRow.map((cell, index) => (
+              <div
+                key={`bottom-${index}`}
+                className={`heatmap-cell rounded-[3px] ${getIntensityClass(cell)}`}
+                style={{ width: CELL_SIZE, height: CELL_SIZE }}
+                title={getTooltipContent(cell)}
+              />
+            ))}
+          </div>
         </div>
       </div>
 

@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent horizontal overflow on small screens */
+html, body { overflow-x: hidden; }
+
 /* Heat Map styles — exact blue scheme */
 .heatmap-cell.intensity-0 {
   background-color: #27272A; /* Dark gray for no traffic */

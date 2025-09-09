@@ -341,7 +341,7 @@ function App() {
   return (
     <div className="bg-gray-900 text-gray-200 min-h-screen">
       <EnhancedHeader activeRange={activeDateRange} onDateRangeChange={handleDateRangeChange} />
-      <main className="container mx-auto px-6 py-8">
+      <main className="container mx-auto px-4 sm:px-6 py-6">
         <SmartStatCards stats={stats} />
         <div className="mt-8">
           <InteractiveChart data={filteredChartData} />
