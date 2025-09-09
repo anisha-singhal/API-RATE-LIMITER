@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 import axios from 'axios';
 
@@ -12,6 +13,7 @@ const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:800
 const ControlPanel = ({ onSendRequest, isSimulating, onToggleSimulation, onUpdateConfig, onResetDashboard }) => {
   const [bucketSize, setBucketSize] = useState('');
   const [refillRate, setRefillRate] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleApplyChanges = () => {
     if (bucketSize && refillRate) {
@@ -84,21 +86,49 @@ const ControlPanel = ({ onSendRequest, isSimulating, onToggleSimulation, onUpdat
             <Save className="mr-2 h-4 w-4" /> Apply Changes
           </Button>
 
-          <div className="pt-2 grid grid-cols-2 gap-2">
+          {/* Centered Reset Button with confirmation modal */}
+          <div className="pt-4 flex justify-center">
             <Button
-              onClick={async () => {
-                try {
-                  await axios.post(`${API_BASE_URL}/api/reset`, { what: 'all' });
-                } catch (e) {
-                  console.warn('Backend reset failed', e);
-                }
-                onResetDashboard?.();
-              }}
+              onClick={() => setConfirmOpen(true)}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               Reset Dashboard
             </Button>
           </div>
+
+          <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <DialogContent className="bg-gray-900 text-gray-100 border-gray-700">
+              <DialogHeader>
+                <DialogTitle>Reset dashboard data?</DialogTitle>
+                <DialogDescription>
+                  This will clear local charts, logs, and heatmap data. Optionally, it will also reset the backend buckets and config.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="sm:justify-center gap-2">
+                <Button
+                  variant="outline"
+                  className="bg-gray-800 hover:bg-gray-700 border-gray-600"
+                  onClick={() => setConfirmOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  onClick={async () => {
+                    try {
+                      await axios.post(`${API_BASE_URL}/api/reset`, { what: 'all' });
+                    } catch (e) {
+                      console.warn('Backend reset failed', e);
+                    }
+                    onResetDashboard?.();
+                    setConfirmOpen(false);
+                  }}
+                >
+                  Yes, reset
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>
