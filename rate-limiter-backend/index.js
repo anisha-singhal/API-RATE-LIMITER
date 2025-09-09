@@ -8,7 +8,13 @@ const app = express();
 app.use(express.json());
 
 app.use(cors({
-  exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining','X-RateLimit-Refill-Rate'],
+  exposedHeaders: [
+    'X-RateLimit-Limit',
+    'X-RateLimit-Remaining',
+    'X-RateLimit-Refill-Rate',
+    'X-RateLimit-Reset',
+    'Retry-After'
+  ],
 }));
 
 app.set('trust proxy', 1);
@@ -38,6 +44,42 @@ const PORT = process.env.PORT || 8000;
 
 app.get('/', (req, res) => {
     res.send('Server is up and running!');
+});
+
+// Utility: delete keys by pattern using SCAN to avoid blocking Redis
+async function deleteByPattern(pattern) {
+  let cursor = '0';
+  do {
+    const [next, keys] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 200);
+    if (keys.length) {
+      try {
+        await redis.unlink(...keys);
+      } catch (e) {
+        await redis.del(...keys);
+      }
+    }
+    cursor = next;
+  } while (cursor !== '0');
+}
+
+// Reset endpoint for testing/demos: clear buckets/config or both
+app.post('/api/reset', async (req, res) => {
+  const { what } = req.body || {};
+  try {
+    if (what === 'buckets' || what === 'all') {
+      await deleteByPattern('rl:user:*');
+      // Also clear legacy keys if they exist
+      await deleteByPattern('user:*');
+    }
+    if (what === 'config' || what === 'all') {
+      await redis.del('rate-limiter-config');
+      await redis.hset('rate-limiter-config', { bucketSize: 10, refillRate: 2 });
+    }
+    return res.json({ status: 'ok' });
+  } catch (e) {
+    console.error('Reset error:', e);
+    return res.status(500).json({ error: 'reset-failed' });
+  }
 });
 
 app.get('/api/data', tokenBucketRateLimiter(redis), (req, res) => {

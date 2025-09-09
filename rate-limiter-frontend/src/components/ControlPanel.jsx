@@ -5,7 +5,11 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
-const ControlPanel = ({ onSendRequest, isSimulating, onToggleSimulation, onUpdateConfig }) => {
+import axios from 'axios';
+
+const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8000';
+
+const ControlPanel = ({ onSendRequest, isSimulating, onToggleSimulation, onUpdateConfig, onResetDashboard }) => {
   const [bucketSize, setBucketSize] = useState('');
   const [refillRate, setRefillRate] = useState('');
 
@@ -79,6 +83,22 @@ const ControlPanel = ({ onSendRequest, isSimulating, onToggleSimulation, onUpdat
           <Button onClick={handleApplyChanges} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
             <Save className="mr-2 h-4 w-4" /> Apply Changes
           </Button>
+
+          <div className="pt-2 grid grid-cols-2 gap-2">
+            <Button
+              onClick={async () => {
+                try {
+                  await axios.post(`${API_BASE_URL}/api/reset`, { what: 'all' });
+                } catch (e) {
+                  console.warn('Backend reset failed', e);
+                }
+                onResetDashboard?.();
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Reset Dashboard
+            </Button>
+          </div>
         </div>
       </div>
     </div>

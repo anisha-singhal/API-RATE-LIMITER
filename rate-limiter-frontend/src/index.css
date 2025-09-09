@@ -2,16 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Heat Map styles with direct colors */
+/* Heat Map styles — exact blue scheme */
 .heatmap-cell.intensity-0 {
-  background-color: #27272A; /* Dark Gray */
+  background-color: #27272A; /* Dark gray for no traffic */
 }
 .heatmap-cell.intensity-1 {
-  background-color: #1d4ed8; /* Dark Blue */
+  background-color: #1d4ed8; /* Dark blue */
 }
 .heatmap-cell.intensity-2 {
-  background-color: #2563eb; /* Medium Blue */
+  background-color: #2563eb; /* Medium blue */
 }
 .heatmap-cell.intensity-3 {
-  background-color: #60a5fa; /* Bright Blue */
+  background-color: #60a5fa; /* Bright blue */
+}
+
+/* Hover effect */
+.heatmap-cell:hover {
+  opacity: 0.9;
+  transform: scale(1.08);
 }

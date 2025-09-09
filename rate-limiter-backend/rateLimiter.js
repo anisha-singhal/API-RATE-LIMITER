@@ -1,77 +1,86 @@
 /**
- * An Express middleware that implements the Token Bucket algorithm for API rate limiting.
- * It uses Redis as a persistent, centralized data store for scalability.
- * @param {object} req - The Express request object.
- * @param {object} res - The Express response object.
- * @param {function} next - The callback function to pass control to the next middleware.
+ * Token Bucket rate limiter middleware with atomic updates via Redis Lua.
+ * - Refills by elapsed time and caps at bucket size
+ * - Consumes one token per request when available
+ * - Adds helpful headers and TTL for idle buckets
  */
 const tokenBucketRateLimiter = (redis) => async (req, res, next) => {
-  // parameters for the rate limiter.
-
   try {
     const config = await redis.hgetall('rate-limiter-config');
     const BUCKET_SIZE = parseInt(config.bucketSize, 10) || 10;
     const REFILL_RATE = parseInt(config.refillRate, 10) || 2;
-    // Identify the user by their IP address. This will serve as the unique key in Redis.
-    const ip = req.ip;
-    const key = `user:${ip}`;
 
-    // Check if a record for this user already exists in Redis.
-    const userExists = await redis.exists(key);
-    if (!userExists) {
-      // If the user is new, create a new token bucket for them in a Redis Hash.
-      // The bucket is initialized with the maximum number of tokens.
-      await redis.hset(key, {
-        tokens: BUCKET_SIZE,
-        lastRefill: Date.now(),
-      });
-    }
+    // Use a namespaced key for clarity and safe deletion patternsn    const ip = req.ip;
+    const key = `rl:user:${ip}`;
 
-    // Retrieve the user's current token bucket data from Redis.
-    const bucketData = await redis.hgetall(key);
+    // TTL to let idle buckets expire (24h)
+    const TTL_SECONDS = 24 * 60 * 60;
 
-    // Convert the string values from Redis back into numbers.
-    const bucket = {
-      tokens: parseFloat(bucketData.tokens),
-      lastRefill: parseInt(bucketData.lastRefill, 10),
-    };
+    // Atomic token bucket using Lua to avoid races under concurrency
+    const script = `
+      local key = KEYS[1]
+      local bucketSize = tonumber(ARGV[1])
+      local refillRate = tonumber(ARGV[2])
+      local now = tonumber(ARGV[3])
+      local ttlSeconds = tonumber(ARGV[4])
 
-    //how much time has passed since the last refill.
+      local tokens = tonumber(redis.call('HGET', key, 'tokens'))
+      local lastRefill = tonumber(redis.call('HGET', key, 'lastRefill'))
+
+      if (tokens == nil) or (lastRefill == nil) then
+        tokens = bucketSize
+        lastRefill = now
+      else
+        local elapsed = (now - lastRefill) / 1000.0
+        tokens = math.min(bucketSize, tokens + (elapsed * refillRate))
+        lastRefill = now
+      end
+
+      local allowed = 0
+      if tokens >= 1 then
+        tokens = tokens - 1
+        allowed = 1
+      end
+
+      redis.call('HSET', key, 'tokens', tokens, 'lastRefill', lastRefill)
+      redis.call('EXPIRE', key, ttlSeconds)
+
+      local secondsUntilNext = 0
+      if allowed == 0 then
+        secondsUntilNext = math.ceil((1 - tokens) / refillRate)
+        if secondsUntilNext < 1 then secondsUntilNext = 1 end
+      end
+
+      return {allowed, tokens, secondsUntilNext}
+    `;
+
     const now = Date.now();
-    const timePassed = (now - bucket.lastRefill) / 1000; // in seconds
+    const [allowed, tokensRemaining, secondsUntilNext] = await redis.eval(
+      script,
+      1,
+      key,
+      BUCKET_SIZE,
+      REFILL_RATE,
+      now,
+      TTL_SECONDS
+    );
 
-    //how many new tokens the user has earned in that time.
-    const tokensToAdd = timePassed * REFILL_RATE;
+    // Standard rate limit headers
+    res.set('X-RateLimit-Limit', String(BUCKET_SIZE));
+    res.set('X-RateLimit-Remaining', String(Math.floor(tokensRemaining)));
+    res.set('X-RateLimit-Refill-Rate', String(REFILL_RATE));
 
-    //new tokens to the bucket added, ensuring it doesn't exceed the maximum size.
-    bucket.tokens = Math.min(BUCKET_SIZE, bucket.tokens + tokensToAdd);
-    bucket.lastRefill = now;
-
-    // Add custom headers to the response to inform the client of their current rate limit status.
-    res.set('X-RateLimit-Limit', BUCKET_SIZE);
-    res.set('X-RateLimit-Remaining', Math.floor(bucket.tokens));
-    res.set('X-RateLimit-Refill-Rate', REFILL_RATE);
-
-    // Check if the user has at least one token to spend.
-    if (bucket.tokens >= 1) {
-      // If they do, subtract one token.
-      bucket.tokens -= 1;
-
-      // Update the bucket in Redis with the new token count and last refill time.
-      await redis.hset(key, 'tokens', bucket.tokens, 'lastRefill', bucket.lastRefill);
-      
-      // The request is allowed. Pass control to the next middleware or the API endpoint.
-      next();
-    }  else {
-    // If the bucket is empty, still save the refilled state, then block.
-    await redis.hset(key, 'tokens', bucket.tokens, 'lastRefill', bucket.lastRefill);
-    res.status(429).send('Too Many Requests');
-  }
+    if (allowed === 1 || allowed === '1') {
+      return next();
+    } else {
+      // Helpful headers when blocked
+      res.set('Retry-After', String(secondsUntilNext || 1));
+      res.set('X-RateLimit-Reset', String(secondsUntilNext || 1));
+      return res.status(429).send('Too Many Requests');
+    }
   } catch (error) {
-    // If any error occurs we pass the error
-    next(error);
+    return next(error);
   }
 };
 
-// Exporting the middleware 
 module.exports = tokenBucketRateLimiter;

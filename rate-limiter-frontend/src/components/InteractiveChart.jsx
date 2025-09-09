@@ -1,12 +1,18 @@
 import { useState, useEffect, useCallback } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 
-const InteractiveChart = ({ data, onDataPointClick }) => {
+const InteractiveChart = ({ data = [], onDataPointClick }) => {
+  // Debug logging
+  useEffect(() => {
+    console.log('Chart data:', data);
+  }, [data]);
 
   const handleChartClick = useCallback((data) => {
     if (data && data.activePayload && data.activePayload[0]) {
       const clickedData = data.activePayload[0].payload;
-      onDataPointClick(clickedData.timestamp);
+      if (onDataPointClick) {
+        onDataPointClick(clickedData.timestamp);
+      }
     }
   }, [onDataPointClick]);
 
