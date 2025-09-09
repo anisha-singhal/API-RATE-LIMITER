@@ -61,7 +61,11 @@ const EnhancedHeader = ({
           <div className="flex items-center space-x-4">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex items-center gap-2 border-gray-700 bg-gray-900 hover:bg-gray-800 text-gray-200 focus-visible:ring-0 focus-visible:ring-offset-0 shrink-0"
+                >
                   <Calendar className="w-4 h-4" />
                   <span className="hidden sm:inline">{selectedRange}</span>
                   <ChevronDown className="w-3 h-3" />

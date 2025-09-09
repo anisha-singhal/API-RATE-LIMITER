@@ -30,19 +30,19 @@ const ControlPanel = ({ onSendRequest, isSimulating, onToggleSimulation, onUpdat
     <div className="bg-gray-800/50 p-6 rounded-lg shadow-lg h-full flex flex-col justify-between">
       <div>
         <h3 className="text-lg font-semibold text-gray-100 mb-6">Control Panel</h3>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <Button
               onClick={onSendRequest}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 shrink-0"
             >
               <Send className="w-4 h-4 mr-2" />
               Send Request
             </Button>
             
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-3">
               <Label 
                 htmlFor="simulate-traffic" 
-                className="text-sm text-muted-foreground cursor-pointer"
+                className="text-sm text-muted-foreground cursor-pointer whitespace-nowrap"
               >
                 Simulate Traffic
               </Label>
@@ -50,7 +50,7 @@ const ControlPanel = ({ onSendRequest, isSimulating, onToggleSimulation, onUpdat
                 id="simulate-traffic"
                 checked={isSimulating}
                 onCheckedChange={onToggleSimulation}
-                className="data-[state=unchecked]:bg-slate-800 data-[state=checked]:bg-primary"
+                className="data-[state=unchecked]:bg-slate-800 data-[state=checked]:bg-primary focus-visible:ring-0 focus-visible:ring-offset-0"
               />
               <Zap className={`w-4 h-4 transition-colors ${isSimulating ? 'text-yellow-400' : 'text-gray-500'}`} />
             </div>
