@@ -10,7 +10,8 @@ const tokenBucketRateLimiter = (redis) => async (req, res, next) => {
     const BUCKET_SIZE = parseInt(config.bucketSize, 10) || 10;
     const REFILL_RATE = parseInt(config.refillRate, 10) || 2;
 
-    // Use a namespaced key for clarity and safe deletion patternsn    const ip = req.ip;
+    // Use a namespaced key for clarity and safe deletion patterns
+    const ip = req.ip;
     const key = `rl:user:${ip}`;
 
     // TTL to let idle buckets expire (24h)
